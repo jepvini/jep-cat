@@ -6,9 +6,7 @@
 #define BUFF_LEN     115
 #define SPEED_FACTOR 42069
 
-typedef _Atomic(double) atomic_double;
-
-volatile atomic_double status;
+_Atomic volatile double status;
 
 long *
 get_cpu_status(long *cpu_status)
