@@ -54,8 +54,10 @@ get_load(void *args)
     buffer = cpu_status_t1;
     buffer = get_cpu_status(cpu_status_t1);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++) {
       cpu_status_delta[i] = cpu_status_t1[i] - cpu_status_t0[i];
+      cpu_status_t0[i]    = cpu_status_t1[i];
+    }
 
     sum = 0;
     for (int i = 0; i < 10; i++)
@@ -73,15 +75,45 @@ void *
 cat(void *args)
 {
   while (1) {
-    puts("");
+    while (status < 0.15) {
+      fflush(stdout);
+      printf("\n");
+      usleep(500000);
+    }
+    fflush(stdout);
+    printf("\n");
     usleep(SPEED_FACTOR / status);
-    puts("");
+    while (status < 0.15) {
+      fflush(stdout);
+      printf("\n");
+      usleep(500000);
+    }
+    fflush(stdout);
+    printf("\n");
     usleep(SPEED_FACTOR / status);
-    puts("");
+    while (status < 0.15) {
+      fflush(stdout);
+      printf("\n");
+      usleep(500000);
+    }
+    fflush(stdout);
+    printf("\n");
     usleep(SPEED_FACTOR / status);
-    puts("");
+    while (status < 0.15) {
+      fflush(stdout);
+      printf("\n");
+      usleep(500000);
+    }
+    fflush(stdout);
+    printf("\n");
     usleep(SPEED_FACTOR / status);
-    puts("");
+    while (status < 0.15) {
+      fflush(stdout);
+      printf("\n");
+      usleep(500000);
+    }
+    fflush(stdout);
+    printf("\n");
     usleep(SPEED_FACTOR / status);
   }
   return NULL;
@@ -92,6 +124,7 @@ main(int argc, char *argv[])
 {
   pthread_t get_load_thread, cat_thread;
 
+  printf("\n");
   // Creating a new thread
   pthread_create(&get_load_thread, NULL, get_load, NULL);
   sleep(2);
