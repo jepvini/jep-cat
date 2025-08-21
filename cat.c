@@ -3,12 +3,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define BUFF_LEN     115
-#define SPEED_FACTOR 42069
+#define BUFF_LEN      115 // cpu + 2 spaces + 10 int with a space between them
+#define SPEED_FACTOR  42069  // increase for a faster cat
+#define HALF_A_SECOND 500000 // in us
+#define WAKEUP_LOAD   0.15   // load under this will make the cat sleep
+
 
 _Atomic volatile double status;
 
-long *
+void
 get_cpu_status(long *cpu_status)
 {
   FILE *stat;
@@ -19,9 +22,9 @@ get_cpu_status(long *cpu_status)
   stat = fopen("/proc/stat", "r");
   if (stat == NULL) exit(1);
 
-  while ((*line_it = fgetc(stat)) && (*line_it != '\n')) {
+  while ((*line_it = fgetc(stat)) && (*line_it != '\n'))
     line_it++;
-  }
+
   *line_it = ' ';
   line_it++;
   *line_it = '\0';
@@ -36,24 +39,22 @@ get_cpu_status(long *cpu_status)
       line_it++;
     line_it++;
   }
-
-  return cpu_status;
 }
 
 void *
 get_load(void *args)
 {
   long cpu_status_t0[10], cpu_status_t1[10], cpu_status_delta[10];
-  long *buffer, sum;
+  long sum;
 
-  buffer = cpu_status_t0;
-  buffer = get_cpu_status(cpu_status_t0);
+  // T0
+  get_cpu_status(cpu_status_t0);
 
   while (1) {
-    sleep(1);
-    buffer = cpu_status_t1;
-    buffer = get_cpu_status(cpu_status_t1);
+    usleep(HALF_A_SECOND);
+    get_cpu_status(cpu_status_t1);
 
+    // gets the delta load and update T0
     for (int i = 0; i < 10; i++) {
       cpu_status_delta[i] = cpu_status_t1[i] - cpu_status_t0[i];
       cpu_status_t0[i]    = cpu_status_t1[i];
@@ -63,57 +64,57 @@ get_load(void *args)
     for (int i = 0; i < 10; i++)
       sum += cpu_status_delta[i];
 
+    // evaluate the load percentage
     status = 1 - (double)cpu_status_delta[3] / sum;
-
-    // printf("%f\n", status);
   }
 
   return NULL;
 }
 
+// output function
 void *
 cat(void *args)
 {
   while (1) {
-    while (status < 0.15) {
+    while (status < WAKEUP_LOAD) {
       fflush(stdout);
-      printf("\n");
-      usleep(500000);
+      puts("");
+      usleep(HALF_A_SECOND);
     }
     fflush(stdout);
-    printf("\n");
+    puts("");
     usleep(SPEED_FACTOR / status);
-    while (status < 0.15) {
+    while (status < WAKEUP_LOAD) {
       fflush(stdout);
-      printf("\n");
-      usleep(500000);
+      puts("");
+      usleep(HALF_A_SECOND);
     }
     fflush(stdout);
-    printf("\n");
+    puts("");
     usleep(SPEED_FACTOR / status);
-    while (status < 0.15) {
+    while (status < WAKEUP_LOAD) {
       fflush(stdout);
-      printf("\n");
-      usleep(500000);
+      puts("");
+      usleep(HALF_A_SECOND);
     }
     fflush(stdout);
-    printf("\n");
+    puts("");
     usleep(SPEED_FACTOR / status);
-    while (status < 0.15) {
+    while (status < WAKEUP_LOAD) {
       fflush(stdout);
-      printf("\n");
-      usleep(500000);
+      puts("");
+      usleep(HALF_A_SECOND);
     }
     fflush(stdout);
-    printf("\n");
+    puts("");
     usleep(SPEED_FACTOR / status);
-    while (status < 0.15) {
+    while (status < WAKEUP_LOAD) {
       fflush(stdout);
-      printf("\n");
-      usleep(500000);
+      puts("");
+      usleep(HALF_A_SECOND);
     }
     fflush(stdout);
-    printf("\n");
+    puts("");
     usleep(SPEED_FACTOR / status);
   }
   return NULL;
@@ -124,12 +125,18 @@ main(int argc, char *argv[])
 {
   pthread_t get_load_thread, cat_thread;
 
-  printf("\n");
-  // Creating a new thread
+  // while I wait for the thread to start
+  puts("");
+
+  // Create get load
   pthread_create(&get_load_thread, NULL, get_load, NULL);
-  sleep(2);
+
+  sleep(1);
+
+  // Create cat
   pthread_create(&cat_thread, NULL, cat, NULL);
 
+  // If it crash the program finish
   pthread_join(get_load_thread, NULL);
-  return EXIT_SUCCESS;
+  return 1;
 }
